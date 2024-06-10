@@ -14,7 +14,7 @@ export default function SignUp() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     //如果有一个没填，就是错误信息
-    if (!formData.username || !formData.email || !formData.password) {
+    if (!formData.email || !formData.password) {
       return setErrorMessage("Please fill out all fields");
     }
     try {
@@ -56,14 +56,14 @@ export default function SignUp() {
 
           <p className="text-sm mt-5">
             {" "}
-            this thisthisthisthisthisthisthisthisthisthisthisthisthis
+            you can sign up with your email and password or with Google
           </p>
         </div>
         {/* rightside */}
         <div className="flex-1">
           <div className="">
             <form className=" flex flex-col gap-4" onSubmit={handleSubmit}>
-              <div>
+              {/* <div>
                 <Label value="your user name"></Label>
                 <TextInput
                   type="text"
@@ -71,7 +71,7 @@ export default function SignUp() {
                   id="username"
                   onChange={handleChange}
                 />
-              </div>
+              </div> */}
               <div>
                 <Label value="your user email"></Label>
                 <TextInput
