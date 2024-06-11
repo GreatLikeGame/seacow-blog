@@ -7,14 +7,14 @@ export const test = (req, res) => {
 };
 
 export const updateUser = async (req, res, next) => {
-  console.log("userid " + req.user.id);
-  console.log("id" + req.params.userId);
+  // console.log("userid " + req.user.id);
+  // console.log("id" + req.params.userId);
   //做验证
 
   if (req.user.id !== req.params.userId) {
     return next(errorHandler(403, "you are not allowed to update this user"));
   }
-  console.log(123);
+  // console.log(123);
   if (req.body.password) {
     if (req.body.password.length < 6) {
       return next(
@@ -56,6 +56,18 @@ export const updateUser = async (req, res, next) => {
     );
     const { password, ...rest } = updateUser._doc;
     res.status(200).json(rest);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const deleteUser = async (req, res, next) => {
+  if (req.user.id !== req.params.userId) {
+    return next(errorHandler(403, "you are not allowed to delete this user"));
+  }
+  try {
+    await User.findByIdAndDelete(req.params.userId);
+    res.status(200).json("user has been deleted");
   } catch (error) {
     next(error);
   }
