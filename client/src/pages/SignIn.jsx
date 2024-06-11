@@ -1,11 +1,16 @@
 import { Alert, Button, Label, Spinner, TextInput } from "flowbite-react";
 import React, { useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import { signInStart, signSuccess, signFailure } from "../redux/user/userSlice";
 
 export default function SignIn() {
   const [formData, setFormData] = useState({});
-  const [errorMessage, setErrorMessage] = useState(null);
-  const [loading, setLoading] = useState(false);
+  // const [errorMessage, setErrorMessage] = useState(null);
+  // const [loading, setLoading] = useState(false);
+  const { error: errorMessage, loading } = useSelector((state) => state.user);
+
+  const dispatch = useDispatch();
 
   const navigate = useNavigate();
   const handleChange = (e) => {
@@ -15,11 +20,12 @@ export default function SignIn() {
     e.preventDefault();
     //如果有一个没填，就是错误信息
     if (!formData.email || !formData.password) {
-      return setErrorMessage("Please fill out all fields");
+      return dispatch(signFailure("Please fill in all fields"));
     }
     try {
-      setLoading(true);
-      setErrorMessage(null);
+      dispatch(signInStart);
+      // setLoading(true);
+      // setErrorMessage(null);
       //网络请求
       const res = await fetch("/api/auth/signin", {
         method: "Post",
@@ -29,15 +35,17 @@ export default function SignIn() {
       //数据错误
       const data = await res.json();
       if (data.success === false) {
-        return setErrorMessage(data.message);
+        dispatch(signFailure(data.message));
       }
-      setLoading(false);
+
       if (res.ok) {
+        dispatch(signSuccess(data));
         navigate("/");
       }
     } catch (error) {
-      setErrorMessage(error.message);
-      setLoading(false);
+      dispatch(signFailure(error.message));
+      // setErrorMessage(error.message);
+      // setLoading(false);
     }
   };
   // console.log(formData);

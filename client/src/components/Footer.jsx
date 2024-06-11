@@ -88,8 +88,6 @@ export default function FooterCom() {
           <Footer.Copyright
             href="#"
             by="seacow"
-            s
-            blog
             year={new Date().getFullYear()}
           />
           <div className="flex gap-6 sm:mt-0 mt-4 sm:justify-center">
