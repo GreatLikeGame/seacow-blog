@@ -1,7 +1,7 @@
 import { Alert, Button, TextInput } from "flowbite-react";
 
 import { useSelector } from "react-redux";
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   getDownloadURL,
   getStorage,
@@ -12,17 +12,37 @@ import { app } from "../firebase";
 import { CircularProgressbar } from "react-circular-progressbar";
 import "react-circular-progressbar/dist/styles.css";
 
+// import { fetch } from "whatwg-fetch";
+
+import {
+  updateStart,
+  updateSucess,
+  updateFailure,
+} from "../redux/user/userSlice";
+
+import { useDispatch } from "react-redux";
+
 export default function DashProfile() {
   const { currentUser } = useSelector((state) => state.user);
   const [imagFile, setImageFile] = React.useState(null);
   const [imagFileUrl, setImageFileUrl] = React.useState(null);
   const [imageFileUploadProgress, setimageFileUploadProgress] =
     React.useState(null);
+  const [imageFileUploading, setImagFileUploading] = React.useState(false);
   const [imageFileUploadError, setimageFileUploadError] = React.useState(null);
+
+  //成功失败
+  const [updateUserSuccess, setUpdateUserSuccess] = useState(null);
+  const [updateUserError, setUpdateUserError] = useState(null);
+
+  const [formData, setFormData] = useState({});
 
   //   console.log(imageFileUploadProgress, imageFileUploadError);
 
   const filePickerRef = useRef();
+
+  //update
+  const dispatch = useDispatch();
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -32,6 +52,10 @@ export default function DashProfile() {
       setImageFileUrl(URL.createObjectURL(file));
     }
   };
+  function handleChange(e) {
+    setFormData({ ...formData, [e.target.id]: e.target.value });
+  }
+  // console.log(formData);
   //   console.log(imagFile, imagFileUrl);
   useEffect(() => {
     if (imagFile) {
@@ -41,35 +65,82 @@ export default function DashProfile() {
 
   const uploadImage = async () => {
     //上传头像
-    console.log("loading iamg");
+    // console.log("loading iamg");
+    setImagFileUploading(true);
     setimageFileUploadError(null);
     const storage = getStorage(app);
     const fileName = new Date().getTime() + imagFile.name;
     const storageRef = ref(storage, fileName);
     const uploadTask = uploadBytesResumable(storageRef, imagFile);
-    uploadTask.on("state_changed", (snapshot) => {
-      const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-      setimageFileUploadProgress(progress.toFixed(0));
-    });
-    (error) => {
-      setimageFileUploadError(
-        " could not upload image (File must be less than 2MB)"
-      );
-      setimageFileUploadProgress(null);
-      setImageFile(null);
-      setImageFileUrl(null);
-    };
-    () => {
-      getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
-        setImageFileUrl(downloadURL);
+    uploadTask.on(
+      "state_changed",
+      (snapshot) => {
+        const progress =
+          (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+        setimageFileUploadProgress(progress.toFixed(0));
+      },
+      (error) => {
+        setimageFileUploadError(
+          " could not upload image (File must be less than 2MB)"
+        );
+        setimageFileUploadProgress(null);
+        setImageFile(null);
+        setImageFileUrl(null);
+        setImagFileUploading(false);
+      },
+      () => {
+        getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
+          setImageFileUrl(downloadURL);
+
+          setFormData({ ...formData, profilePicture: downloadURL });
+          setImagFileUploading(false);
+        });
+      }
+    );
+  };
+  //更新提交
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setUpdateUserError(null);
+    setUpdateUserSuccess(null);
+    if (Object.keys(formData).length === 0) {
+      setUpdateUserError("no changes made");
+      return;
+    }
+    if (imageFileUploading) {
+      setUpdateUserError("please wait for image to upload");
+      return;
+    }
+
+    try {
+      dispatch(updateStart());
+      // console.log(currentUser._id);
+      const res = await fetch(`/api/user/update/${currentUser._id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
       });
-    };
+      const data = await res.json();
+      // console.log(res);
+      if (!res.ok) {
+        dispatch(updateFailure(data.message));
+        setUpdateUserError(data.message);
+      } else {
+        dispatch(updateSucess(data));
+        setUpdateUserSuccess(" user's profile updated sussfully");
+      }
+    } catch (error) {
+      dispatch(updateFailure(error.message));
+      setUpdateUserError(error.message);
+    }
   };
 
   return (
     <div className="max-w-lg mx-auto p-3 w-full">
       <h1 className="my-7 text-center font-semibold text-3xl">profile</h1>
-      <form className="flex flex-col gap-4">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <input
           type="file"
           accept="image/*"
@@ -117,6 +188,7 @@ export default function DashProfile() {
           id="username"
           placeholder="username"
           defaultValue={currentUser.username}
+          onChange={handleChange}
         />
 
         <TextInput
@@ -124,6 +196,7 @@ export default function DashProfile() {
           id="email"
           placeholder="email"
           defaultValue={currentUser.email}
+          onChange={handleChange}
         />
 
         <TextInput
@@ -131,6 +204,7 @@ export default function DashProfile() {
           id="password"
           placeholder="password"
           //   defaultValue='*********'
+          onChange={handleChange}
         />
         <Button type="submit" gradientDuoTone="purpleToBlue" outline>
           Upadate
@@ -140,6 +214,16 @@ export default function DashProfile() {
         <span className="cursor-pointer"> Delete Account</span>
         <span className="cursor-pointer"> Sign Out</span>
       </div>
+      {updateUserSuccess && (
+        <Alert color="success" className="mt-5">
+          {updateUserSuccess}
+        </Alert>
+      )}
+      {updateUserError && (
+        <Alert color="failure" className="mt-5">
+          {updateUserError}
+        </Alert>
+      )}
     </div>
   );
 }

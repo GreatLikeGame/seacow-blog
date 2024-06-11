@@ -7,11 +7,14 @@ export const test = (req, res) => {
 };
 
 export const updateUser = async (req, res, next) => {
-  console.log(req.user);
+  console.log("userid " + req.user.id);
+  console.log("id" + req.params.userId);
   //做验证
+
   if (req.user.id !== req.params.userId) {
     return next(errorHandler(403, "you are not allowed to update this user"));
   }
+  console.log(123);
   if (req.body.password) {
     if (req.body.password.length < 6) {
       return next(
@@ -37,23 +40,23 @@ export const updateUser = async (req, res, next) => {
         errorHandler(400, "username should contain only letters and numbers")
       );
     }
-    try {
-      const updateUser = await User.findByIdAndUpdate(
-        req.params.userId,
-        {
-          $set: {
-            username: req.body.username,
-            email: req.body.email,
-            profilePicture: req.body.profilePicture,
-            password: req.body.password,
-          },
+  }
+  try {
+    const updateUser = await User.findByIdAndUpdate(
+      req.params.userId,
+      {
+        $set: {
+          username: req.body.username,
+          email: req.body.email,
+          profilePicture: req.body.profilePicture,
+          password: req.body.password,
         },
-        { new: true }
-      );
-      const { password, ...rest } = updateUser._doc;
-      res.status(200).json(rest);
-    } catch (error) {
-      next(error);
-    }
+      },
+      { new: true }
+    );
+    const { password, ...rest } = updateUser._doc;
+    res.status(200).json(rest);
+  } catch (error) {
+    next(error);
   }
 };
