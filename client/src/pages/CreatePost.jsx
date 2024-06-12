@@ -13,14 +13,34 @@ import { CircularProgressbar } from "react-circular-progressbar";
 import "react-circular-progressbar/dist/styles.css";
 
 import "quill/dist/quill.snow.css"; // Add css for snow theme
+import { useNavigate } from "react-router-dom";
 
 export default function CreatePost() {
   const [file, setFile] = useState(null);
   const [imageUploadProgress, setImageUploadProgress] = useState(null);
   const [imageUploadError, setImageUploadError] = useState(null);
   const [formdata, setFormdata] = useState({});
+  const [publishEror, setPublishError] = useState(null);
+  const navigate = useNavigate();
 
-  const { quill, quillRef } = useQuill();
+  // console.log(formdata);
+
+  const theme = "snow";
+  const placeholder = "Write Somthing...";
+
+  const { quill, quillRef } = useQuill({ theme, placeholder });
+
+  React.useEffect(() => {
+    if (quill) {
+      quill.on("text-change", () => {
+        // console.log(quillRef.current.firstChild.innerHTML);
+        setFormdata((prevFormdata) => ({
+          ...prevFormdata,
+          content: quillRef.current.firstChild.innerHTML,
+        }));
+      });
+    }
+  }, [quill]);
   const handleUploadImage = async () => {
     try {
       console.log("file" + file);
@@ -49,7 +69,7 @@ export default function CreatePost() {
             setImageUploadProgress(null);
             setImageUploadError(null);
             setFormdata({ ...formdata, image: downloadURL });
-            console.log(formdata);
+            // console.log(formdata);
           });
         }
       );
@@ -59,10 +79,41 @@ export default function CreatePost() {
       console.log(error);
     }
   };
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    console.log(formdata);
+    try {
+      const res = await fetch("/api/post/create", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formdata),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        setPublishError(data.message);
+        return;
+      }
+      if (data.success === false) {
+        setPublishError(data.message);
+        return;
+      }
+      if (res.ok) {
+        setPublishError(null);
+        console.log();
+        navigate(`/post/${data.slug}`);
+      }
+    } catch (error) {
+      setPublishError("something went wrong");
+    }
+  };
+
   return (
     <div className="p-3 max-w-3xl mx-auto min-h-screen">
       <h1 className="text-center text-3xl my-7 font-semibold">Create a post</h1>
-      <form className="flex flex-col gap-4">
+      <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
         <div className="flex flex-col gap-4 sm:flex-row justify-between">
           <TextInput
             type="text"
@@ -70,8 +121,16 @@ export default function CreatePost() {
             required
             id="title"
             className="flex-1"
+            onChange={(e) =>
+              setFormdata({ ...formdata, title: e.target.value })
+            }
           />
-          <Select>
+
+          <Select
+            onChange={(e) =>
+              setFormdata({ ...formdata, category: e.target.value })
+            }
+          >
             <option value="uncategorized">Select a category</option>
             <option value="javascript">Javascript</option>
             <option value="reactjs">React.js</option>
@@ -117,8 +176,6 @@ export default function CreatePost() {
 
         {/* 文字content */}
         <div
-          //   theme="snow"
-          // placeholder="write something"
           className="h-72 mb-12"
           // required
         >
@@ -127,6 +184,11 @@ export default function CreatePost() {
         <Button type="submit" gradientDuoTone="purpleToPink" className="mt-5">
           Publish
         </Button>
+        {publishEror && (
+          <Alert color="failure" className="mt-5">
+            {publishEror}
+          </Alert>
+        )}
       </form>
     </div>
   );
