@@ -12,6 +12,7 @@ import { app } from "../firebase";
 import { CircularProgressbar } from "react-circular-progressbar";
 import "react-circular-progressbar/dist/styles.css";
 import { HiOutlineExclamationCircle } from "react-icons/hi";
+import { Link } from "react-router-dom";
 
 // import { fetch } from "whatwg-fetch";
 
@@ -28,7 +29,7 @@ import {
 import { useDispatch } from "react-redux";
 
 export default function DashProfile() {
-  const { currentUser, error } = useSelector((state) => state.user);
+  const { currentUser, error, loading } = useSelector((state) => state.user);
   const [imagFile, setImageFile] = React.useState(null);
   const [imagFileUrl, setImageFileUrl] = React.useState(null);
   const [imageFileUploadProgress, setimageFileUploadProgress] =
@@ -247,9 +248,26 @@ export default function DashProfile() {
           //   defaultValue='*********'
           onChange={handleChange}
         />
-        <Button type="submit" gradientDuoTone="purpleToBlue" outline>
-          Upadate
+        <Button
+          type="submit"
+          gradientDuoTone="purpleToBlue"
+          outline
+          disabled={loading || imageFileUploading}
+        >
+          {loading ? "Loading..." : "Update"}
         </Button>
+        {/* 如果是管理者 */}
+        {currentUser.isAdmin && (
+          <Link to={"/create-post"}>
+            <Button
+              type="button"
+              gradientDuotone="purpleToPink"
+              className="w-full"
+            >
+              create a post{" "}
+            </Button>
+          </Link>
+        )}
       </form>
       <div className="text-red-500 flex justify-between mt-5 ">
         <span onClick={() => setShowModal(true)} className="cursor-pointer">
