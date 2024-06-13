@@ -1,13 +1,16 @@
 import React, { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
-import { Table } from "flowbite-react";
+import { Button, Modal, Table } from "flowbite-react";
 import { Link } from "react-router-dom";
+import { HiOutlineExclamationCircle } from "react-icons/hi";
 
 export default function DashPosts() {
   const { currentUser } = useSelector((state) => state.user);
   const [showMore, setShowMore] = useState(true);
 
   const [userPosts, setUserPosts] = useState([]);
+  const [showModal, setShowModal] = useState(null);
+  const [postIdToDelete, setPostIdToDelete] = useState("");
   console.log(userPosts);
 
   useEffect(() => {
@@ -47,6 +50,28 @@ export default function DashPosts() {
       console.log(error.message);
     }
   };
+
+  const handleDeletePost = async () => {
+    setShowModal(false);
+    try {
+      const res = await fetch(
+        `/api/post/deletepost/${postIdToDelete}/${currentUser._id}`,
+        {
+          method: "DELETE",
+        }
+      );
+      const data = await res.json();
+      if (!res.ok) {
+        console.log(data.message);
+      } else {
+        setUserPosts((prev) =>
+          prev.filter((post) => post._id !== postIdToDelete)
+        );
+      }
+    } catch (error) {
+      console.log(error.message);
+    }
+  };
   return (
     <div
       className="table-auto overflow-x-scroll md:mx-auto p-3 scrollbar scrollbar-track-slate-100  scrollbar-thumb-slate-300 drak:scrollbar-track-slate-700 
@@ -66,8 +91,8 @@ export default function DashPosts() {
               </Table.HeadCell>
             </Table.Head>
 
-            {userPosts.map((post) => (
-              <Table.Body className="divide-y">
+            {userPosts.map((post, index) => (
+              <Table.Body className="divide-y" key={index}>
                 <Table.Row className="bg-white dark:border-gray-700 dark:bg-gray-800">
                   <Table.Cell>
                     {new Date(post.updatedAt).toLocaleDateString()}
@@ -91,28 +116,15 @@ export default function DashPosts() {
                   </Table.Cell>
                   <Table.Cell>{post.categories}</Table.Cell>
                   <Table.Cell>
-                    <button
-                      onClick={async () => {
-                        try {
-                          const res = await fetch(
-                            `/api/post/deletepost/${post._id}`,
-                            {
-                              method: "DELETE",
-                            }
-                          );
-                          if (res.ok) {
-                            setUserPosts(
-                              userPosts.filter((p) => p._id !== post._id)
-                            );
-                          }
-                        } catch (error) {
-                          console.log(error.message);
-                        }
+                    <span
+                      onClick={() => {
+                        setShowModal(true);
+                        setPostIdToDelete(post._id);
                       }}
                       className="font-medium  text-red-500 hover:underline cursor-pointer"
                     >
                       Delete
-                    </button>
+                    </span>
                   </Table.Cell>
                   <Table.Cell>
                     <Link to={`/update-post/${post._id}`}>
@@ -137,6 +149,31 @@ export default function DashPosts() {
       ) : (
         <p>You have no post yet</p>
       )}
+
+      <Modal
+        show={showModal}
+        onClose={() => setShowModal(false)}
+        popup
+        size="md"
+      >
+        <Modal.Header />
+        <Modal.Body>
+          <div className="text-center">
+            <HiOutlineExclamationCircle className="h-14 w-14 text-gray-400 dark:text-gray-200 mb-4 mx-auto" />
+            <h3 className="mb-5 text-lg text-gray-500 dark:text-gray-400">
+              Are you sure you want to delete your post
+            </h3>
+            <div className="flex justify-center gap-4">
+              <Button color="failure" onClick={handleDeletePost}>
+                Yes, i'm sure
+              </Button>
+              <Button color="gray" onClick={() => setShowModal(false)}>
+                No,cancel
+              </Button>
+            </div>
+          </div>
+        </Modal.Body>
+      </Modal>
     </div>
   );
 }
