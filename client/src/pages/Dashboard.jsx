@@ -28,7 +28,6 @@ export default function Dashboard() {
         {tab === "profile" && <DashProfile />}
         {/* post */}
         {tab === "posts" && <DashPosts />}
-        {/* 6.37 */}
       </div>
     </div>
   );
